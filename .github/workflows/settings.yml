@@ -1,0 +1,73 @@
+name: Einstellungen übernehmen
+
+# Startet, wenn das Formular „⚙️ Einstellungen“ abgeschickt wird (Link in jeder Mail).
+# Nur Issues der Repo-Besitzerin/des Repo-Besitzers werden übernommen.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write   # settings.yaml und seen_jobs zurück committen
+  issues: write     # antworten und schließen
+
+concurrency:
+  group: daily-job-check   # nicht gleichzeitig mit dem täglichen Lauf committen
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.event.issue.user.login == github.repository_owner && contains(github.event.issue.body, '### Bereiche')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      - name: Formular übernehmen
+        id: apply
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}   # nur über env, nie direkt ins Skript
+        run: |
+          python -m jobtracker.settings apply --body-env ISSUE_BODY --mail \
+            --comment-file "$RUNNER_TEMP/antwort.md" --github-output "$GITHUB_OUTPUT" || true
+
+      - name: settings.yaml committen
+        if: steps.apply.outputs.ok == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add settings.yaml
+          git commit -m "chore: Einstellungen aktualisiert (#${{ github.event.issue.number }}) [skip ci]" || exit 0
+          git pull --rebase
+          git push
+
+      - name: Im Issue antworten und schließen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh label create einstellungen --color 5319e7 --description "Tracker-Einstellungen" 2>/dev/null || true
+          gh issue comment "$NUMBER" --body-file "$RUNNER_TEMP/antwort.md"
+          gh issue close "$NUMBER"
+
+      - name: Erste Jobmail
+        if: steps.apply.outputs.first_setup == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python -m jobtracker --days 14
+          git add data/seen_jobs*.json
+          git commit -m "chore: seen_jobs nach erster Mail [skip ci]" || exit 0
+          git pull --rebase
+          git push

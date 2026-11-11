@@ -1,0 +1,181 @@
+# Standardwerte des Trackers. Persönliches (Stellenart, Profil, Ort, Bereiche, VCs) kommt aus
+# settings.yaml, die über das Einstellungsformular gepflegt wird (siehe README). Wer mehr anpassen will,
+# legt eine config.yaml an: sie wird über diese Werte gelegt (Listen ersetzen, Abschnitte werden zusammengeführt).
+
+search:
+  max_days_old: 2          # nur Stellen der letzten N Tage (VC-Boards: siehe sources.vc_boards.max_days_old)
+
+location:
+  # Remote-Stellen verwerfen, wenn der Ort auf diese Länder/Regionen beschränkt ist
+  remote_exclude_regions:
+    [usa$, us$, united states, america, canada, uk$, united kingdom, london, ireland, india,
+     brazil, latam, apac, asia, australia, singapore, philippines, poland, polen, spain, spanien,
+     portugal, france, frankreich, italy, italien, romania, turkey, ukraine]
+
+
+
+filters:
+  # Pflichtwörter im Titel kommen aus den gewählten job_types.
+  # Ausschluss, wenn einer dieser Begriffe im Titel steht (Wortanfang, Groß/Klein egal)
+  title_exclude:
+    [abschlussarbeit, masterarbeit, bachelorarbeit, thesis, ausbildung, azubi, duales studium,
+     dual student, minijob, promoter, promotion team, call center, callcenter, telefonist,
+     kommissionier, lager, fahrer, kellner, service kraft, kassierer, nachhilfe]
+  exclude_staffing_agencies: false
+  accept_homeoffice_possible: false
+title_only_categories: false   # false = auch Beschreibung für die Zuordnung nutzen (Titel hat Vorrang)
+
+scoring:
+  enabled: true            # wird automatisch übersprungen, wenn ANTHROPIC_API_KEY fehlt
+  model: claude-haiku-5-5  # günstigstes aktuelles Claude-Modell
+  min_score: 6
+  batch_size: 15
+
+storage:
+  path: data/seen_jobs.json
+  retention_days: 60
+
+mail:
+  send_when_empty: true
+  subject: "🎯 VC-Jobradar – {date} – {count}"   # {count} = "1 neue Stelle" / "3 neue Stellen"
+  max_jobs: 60             # Obergrenze pro Mail
+
+http:
+  timeout: 20
+  delay_seconds: 1.0       # Pause zwischen Requests derselben Quelle
+
+
+# Startup-Hochburgen zum Ankreuzen im Formular (weitere Städte über das Feld „Andere Stadt“).
+# aliases: Ortsnamen für Stellen ohne Koordinaten (fast alle Getro-Stellen haben welche)
+startup_cities:
+  berlin: {label: Berlin, lat: 52.5200, lon: 13.4050, aliases: [berlin, potsdam]}
+  muenchen: {label: München, lat: 48.1372, lon: 11.5755, aliases: [münchen, munich, garching, unterföhring, ismaning]}
+  hamburg: {label: Hamburg, lat: 53.5511, lon: 9.9937, aliases: [hamburg, norderstedt]}
+  koeln: {label: Köln, lat: 50.9375, lon: 6.9603, aliases: [köln, cologne, bonn, leverkusen]}
+  frankfurt: {label: Frankfurt am Main, lat: 50.1109, lon: 8.6821, aliases: [frankfurt am main, frankfurt/main, offenbach, eschborn]}
+
+# Stellenarten zum Ankreuzen. queries = Suche bei Getro, title_words = Pflichtwörter im Titel,
+# exclusive_excludes = zusätzliche Ausschlüsse, wenn nur diese Stellenart gesucht wird
+job_types:
+  werkstudent:
+    label: Werkstudentenstellen
+    short: Werkstudent
+    queries: [werkstudent, working student]
+    title_words:
+      [werkstudent, werkstudierend, working student, studentische aushilfe, studentische hilfskraft,
+       studentischer mitarbeiter, studentische mitarbeiterin, student assistant, werkstudium]
+    exclusive_excludes:
+      [vollzeit, full-time, fulltime, full time, pflichtpraktikum, vollzeitpraktikum, praxissemester]
+  praktikum:
+    label: Praktika
+    short: Praktikum
+    queries: [praktikum, praktikant, internship, intern]
+    title_words:
+      [praktikum, praktika, praktikant, pflichtpraktikum, internship, intern$, interns$, stage$, stagiaire]
+    exclusive_excludes: []
+
+sources:
+  vc_boards:
+    enabled: true          # Portfolio-Jobbörsen von VCs (Getro, kein Key nötig)
+    max_days_old: 60       # Boards sind klein; nicht größer als storage.retention_days (sonst Wiederholungen)
+    other_cities: true     # Stellen außerhalb des Radius (nur DE) im Abschnitt „Andere Städte“ zeigen
+    # Suchbegriffe kommen aus job_types (je nach gewählter Stellenart)
+    # network_id: Seitenquelltext der Jobseite → "network":{"id":"…"}
+    boards:
+      - {name: HV Capital, network_id: 234}            # jobs.hvcapital.com
+      - {name: HTGF, network_id: 15008}                # htgf.getro.com (High-Tech Gründerfonds)
+      - {name: Vsquared Ventures, network_id: 42761}   # vsquared.getro.com
+      - {name: b2venture, network_id: 4283}            # b2venture.getro.com
+      - {name: Senovo, network_id: 1536}               # senovo.getro.com
+      - {name: "2150", network_id: 1287}                 # 2150.getro.com
+      - {name: Index Ventures, network_id: 1629}       # indexventures.getro.com
+      - {name: Earlybird, network_id: 617}             # jobs.earlybird.com
+      - {name: Cherry Ventures, network_id: 44081}     # talent.cherry.vc
+      - {name: Point Nine, network_id: 1680}           # jobs.pointnine.com
+      - {name: UVC Partners, network_id: 3062}         # talent.uvcpartners.com
+      - {name: Speedinvest, network_id: 947}           # careers.speedinvest.com
+      - {name: Headline, network_id: 3293}             # jobs.headline.com
+      - {name: Creandum, network_id: 53552}            # careers.creandum.com
+      - {name: Planet A, network_id: 1426}             # jobs.planet-a.com
+      - {name: BlueYard, network_id: 796}              # jobs.blueyard.com
+      - {name: Peak, network_id: 926}                  # jobs.peak.capital
+      - {name: Antler, network_id: 7715}               # careers.antler.co
+      - {name: Firstminute, network_id: 178}           # jobs.firstminute.capital
+      - {name: Seedcamp, network_id: 4186}             # talent.seedcamp.com
+      - {name: Dawn Capital, network_id: 3063}         # jobs.dawncapital.com
+      - {name: Atomico, network_id: 36986}             # careers.atomico.com
+      - {name: Accel, network_id: 8672}                # jobs.accel.com
+      - {name: Insight Partners, network_id: 246}      # jobs.insightpartners.com
+      - {name: General Catalyst, network_id: 222}      # jobs.generalcatalyst.com
+
+# Bereiche zum Ankreuzen im Einstellungsformular: Label und Keywords für die Zuordnung
+category_catalog:
+  sales_bd:
+    label: Sales / Business Development
+    keywords:
+      [sales, vertrieb, business development, bizdev, bd$, sdr$, bdr$, inside sales, account manag,
+       account executive, key account, lead gen, lead-gen, leadgen, partner manag, partnership,
+       go-to-market, gtm$, revenue, customer acquisition, neukunden, akquise, kundenakquise, presales, pre-sales]
+  vc_startup:
+    label: VC / Startup / Strategy
+    keywords:
+      [venture, vc$, investment, investor, private equity, founders associate, founder, startup, start-up,
+       strategy, strategie, strategic, corporate development, business analyst, m&a, mergers, innovation,
+       incubator, accelerator, entrepreneur, ceo office, office of the ceo, chief of staff,
+       business operations, bizops]
+  marketing_growth:
+    label: Marketing / Growth / Content
+    keywords:
+      [marketing, growth, performance, social media, content, seo$, sea$, sem$, crm$, brand, marke$, marken,
+       influencer, community, digital marketing, online marketing, e-mail marketing, demand gen, campaign,
+       kampagne, event]
+  kommunikation:
+    label: Kommunikation / PR
+    keywords:
+      [kommunikation, communication, pr$, public relations, presse, press, unternehmenskommunikation,
+       corporate communication, interne kommunikation, internal communication, redaktion, editorial,
+       storytelling, newsroom, media relations]
+  marktforschung:
+    label: Marktforschung / Insights
+    keywords:
+      [marktforschung, market research, consumer insight, customer insight, insights, ux research,
+       user research, customer experience, cx$, research, marketing analytics]
+  finance:
+    label: Finance / Controlling
+    keywords:
+      [finance, finanz, controlling, controller, accounting, buchhaltung, rechnungswesen, treasury, tax$,
+       steuer, audit, fp&a, investor relations]
+  hr:
+    label: HR / Recruiting
+    keywords:
+      [hr$, human resources, personalabteilung, personalwesen, personalmarketing, recruit, talent, people,
+       employer brand, onboarding]
+  consulting:
+    label: Consulting / Projektmanagement
+    keywords:
+      [consult, beratung, berater, projektmanag, project manag, pmo$, transformation, prozessmanag,
+       process manag]
+  data:
+    label: Data / Analytics / BI
+    keywords:
+      [data, daten, analytics, analyst, business intelligence, bi$, reporting, sql$, python$,
+       machine learning, ki$, ai$]
+  product:
+    label: Produktmanagement
+    keywords: [product manag, produktmanag, product owner, product operations, produkt]
+  software:
+    label: Software / IT
+    keywords:
+      [software, developer, entwickl, engineer, frontend, backend, full stack, fullstack, devops, it$,
+       informatik, cloud, web]
+  operations:
+    label: Operations / Einkauf / Supply Chain
+    keywords:
+      [operations, einkauf, procurement, purchasing, supply chain, logistik, logistics, customer success,
+       customer support, kundenservice]
+  legal:
+    label: Recht / Compliance
+    keywords: [legal, recht, jura, jurist, compliance, datenschutz, privacy, contract, vertragsmanag]
+  design:
+    label: Design / UX
+    keywords: [design, ux$, ui$, user experience, grafik, graphic, video, motion]

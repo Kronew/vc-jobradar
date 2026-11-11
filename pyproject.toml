@@ -1,0 +1,9 @@
+[project]
+name = "vc-jobradar"
+version = "1.0.0"
+description = "Tägliche Mail mit Praktika und Werkstudentenstellen aus den Portfolio-Startups von VCs"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

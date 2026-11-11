@@ -1,0 +1,132 @@
+name: ⚙️ Einstellungen
+description: Tracker einrichten oder Einstellungen ändern (Stellenart, Ort, Bereiche, VCs …)
+title: Einstellungen ändern
+labels: [einstellungen]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Leere Felder, „unverändert“ und nichts Angekreuztes lassen die bisherige Einstellung stehen.
+        Nach dem Absenden übernimmt ein Workflow die Werte (ca. 1 Minute) und schickt dir eine Bestätigung.
+  - type: checkboxes
+    id: art
+    attributes:
+      label: Was suchst du?
+      description: Beim Einrichten mindestens eins ankreuzen. Wer etwas ankreuzt, legt die neue Auswahl fest.
+      options:
+        - label: Werkstudentenstellen
+        - label: Praktika
+  - type: textarea
+    id: profil
+    attributes:
+      label: Über dich
+      description: >-
+        Optional, für die KI-Bewertung: Studium, Erfahrung, ab wann und wie lange, Stunden pro Woche,
+        Sprachen, was dir wichtig ist. Ein einzelnes „-“ löscht das Profil.
+      placeholder: |
+        BWL-Bachelor im 5. Semester, erste Erfahrung im Vertrieb eines Startups.
+        Suche ein Praktikum ab März (6 Monate) oder eine Werkstudentenstelle, gerne SaaS.
+  - type: checkboxes
+    id: staedte
+    attributes:
+      label: Städte
+      description: >-
+        Wo willst du arbeiten? Stellen dort (im Pendelradius) kommen zuerst, der Rest unter „Andere Städte“.
+        Nichts ankreuzen = unverändert. Beim Einrichten heißt das ganz Deutschland.
+      options:
+        - label: Keine (ganz Deutschland)
+        - label: Berlin
+        - label: München
+        - label: Hamburg
+        - label: Köln
+        - label: Frankfurt am Main
+  - type: input
+    id: ort
+    attributes:
+      label: Andere Stadt
+      description: Optional, zusätzlich zu den Städten oben, z. B. Karlsruhe oder Leipzig. „-“ löscht sie.
+      placeholder: Karlsruhe
+  - type: dropdown
+    id: radius
+    attributes:
+      label: Pendelradius
+      description: Gilt für alle gewählten Städte. Standard beim Einrichten sind 30 km.
+      options: [unverändert, 10 km, 20 km, 30 km, 40 km, 50 km, 75 km, 100 km]
+      default: 0
+  - type: dropdown
+    id: remote
+    attributes:
+      label: Remote-Stellen
+      description: 100 % remote, egal wo die Firma sitzt (innerhalb Deutschlands).
+      options: [unverändert, Ja, Nein]
+      default: 0
+  - type: dropdown
+    id: andere_staedte
+    attributes:
+      label: Stellen aus ganz Deutschland
+      description: Nur mit gewählten Städten – Stellen außerhalb des Radius im Abschnitt „Andere Städte“ am Ende der Mail.
+      options: [unverändert, Ja, Nein]
+      default: 0
+  - type: checkboxes
+    id: bereiche
+    attributes:
+      label: Bereiche
+      description: Nichts ankreuzen = unverändert. Beim Einrichten heißt das alle Bereiche.
+      options:
+        - label: Alle Bereiche
+        - label: Sales / Business Development
+        - label: VC / Startup / Strategy
+        - label: Marketing / Growth / Content
+        - label: Kommunikation / PR
+        - label: Marktforschung / Insights
+        - label: Finance / Controlling
+        - label: HR / Recruiting
+        - label: Consulting / Projektmanagement
+        - label: Data / Analytics / BI
+        - label: Produktmanagement
+        - label: Software / IT
+        - label: Operations / Einkauf / Supply Chain
+        - label: Recht / Compliance
+        - label: Design / UX
+  - type: checkboxes
+    id: vcs
+    attributes:
+      label: VCs
+      description: Nur Startups bestimmter VCs? Nichts ankreuzen = unverändert. Beim Einrichten heißt das alle VCs.
+      options:
+        - label: Alle VCs
+        - label: HV Capital
+        - label: HTGF
+        - label: Vsquared Ventures
+        - label: b2venture
+        - label: Senovo
+        - label: "2150"
+        - label: Index Ventures
+        - label: Earlybird
+        - label: Cherry Ventures
+        - label: Point Nine
+        - label: UVC Partners
+        - label: Speedinvest
+        - label: Headline
+        - label: Creandum
+        - label: Planet A
+        - label: BlueYard
+        - label: Peak
+        - label: Antler
+        - label: Firstminute
+        - label: Seedcamp
+        - label: Dawn Capital
+        - label: Atomico
+        - label: Accel
+        - label: Insight Partners
+        - label: General Catalyst
+  - type: textarea
+    id: stichwoerter
+    attributes:
+      label: Eigene Stichwörter
+      description: Zusätzliche Themen, einer pro Zeile, z. B. „Nachhaltigkeit“ oder „Einkauf“. Ersetzt die bisherige Liste; „-“ löscht sie.
+  - type: textarea
+    id: ausschluesse
+    attributes:
+      label: Ausschließen
+      description: Wörter, die nicht im Stellentitel vorkommen sollen, einer pro Zeile. Ersetzt die bisherige Liste; „-“ löscht sie.

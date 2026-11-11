@@ -1,0 +1,117 @@
+name: Täglicher Job-Check (VC-Jobradar)
+
+on:
+  schedule:
+    # GitHub-Cron läuft in UTC und kennt keine Sommerzeit. 07:30 Uhr in Deutschland ist
+    #   Sommer (MESZ, UTC+2): 05:30 UTC   |   Winter (MEZ, UTC+1): 06:30 UTC
+    # Daher zwei Trigger. `--scheduled` sorgt dafür, dass nur der erste Lauf ab 07:00 Uhr
+    # Berliner Zeit tatsächlich etwas tut (max. einmal pro Tag, über last_run in seen_jobs*.json).
+    # Hinweis: GitHub startet geplante Workflows teils mehrere Stunden verspätet.
+    - cron: "30 5 * * *"
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Profil (leer = alle)"
+        type: choice
+        options: ["", default]
+        default: ""
+      dry_run:
+        description: "Nur Dry-Run (keine Mail, nichts speichern)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # zum Zurück-Committen von data/seen_jobs*.json
+
+concurrency:
+  group: daily-job-check
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false   # ein kaputtes Profil hält die anderen nicht auf
+      max-parallel: 1    # nacheinander, damit sich die Bot-Commits nicht in die Quere kommen
+      matrix:
+        # Profil „default“ nutzt settings.yaml (Formular-Link in der Mail). Optional: Secret mit
+        # einer config.yaml, die über die Einstellungen gelegt wird. Weitere Profile brauchen ein Config-Secret.
+        include:
+          - profile: default
+            config_secret: CONFIG_YAML
+            email_secret: EMAIL_TO
+          # Weiteres Profil (siehe README „Mehrere Profile“), auch oben bei options ergänzen:
+          # - profile: freundin
+          #   config_secret: CONFIG_YAML_FREUNDIN
+          #   email_secret: EMAIL_TO_FREUNDIN
+    name: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v4
+        if: inputs.profile == '' || inputs.profile == matrix.profile
+
+      - uses: actions/setup-python@v5
+        if: inputs.profile == '' || inputs.profile == matrix.profile
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Abhängigkeiten installieren
+        if: inputs.profile == '' || inputs.profile == matrix.profile
+        run: pip install -r requirements.txt
+
+      - name: Config aus Secret erzeugen
+        id: config
+        if: inputs.profile == '' || inputs.profile == matrix.profile
+        env:
+          CONFIG_CONTENT: ${{ secrets[matrix.config_secret] }}
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          file="config.${PROFILE}.yaml"
+          if [ -n "$CONFIG_CONTENT" ]; then
+            printf '%s\n' "$CONFIG_CONTENT" > "$file"
+            echo "args=--config $file" >> "$GITHUB_OUTPUT"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$PROFILE" = "default" ]; then
+            echo "Kein Config-Secret – verwende settings.yaml (bzw. Willkommens-Mail, falls noch nicht eingerichtet)"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Profil $PROFILE: Secret ${{ matrix.config_secret }} fehlt – übersprungen"
+          fi
+
+      - name: Tracker ausführen
+        if: steps.config.outputs.run == 'true'
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets[matrix.email_secret] }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CONFIG_ARGS: ${{ steps.config.outputs.args }}
+        run: |
+          if [ -z "$SMTP_USER" ]; then
+            echo "::notice::Secrets fehlen noch (SMTP_USER usw.) – siehe README „Einrichten“. Nichts zu tun."
+            exit 0
+          fi
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python -m jobtracker $CONFIG_ARGS --scheduled
+          elif [ "${{ inputs.dry_run }}" = "true" ]; then
+            python -m jobtracker $CONFIG_ARGS --dry-run
+          else
+            python -m jobtracker $CONFIG_ARGS
+          fi
+
+      - name: seen_jobs zurück committen
+        if: steps.config.outputs.run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/seen_jobs*.json
+          if git diff --staged --quiet; then
+            echo "Keine Änderungen an seen_jobs"
+          else
+            git commit -m "chore: seen_jobs (${{ matrix.profile }}) aktualisieren [skip ci]"
+            git pull --rebase
+            git push
+          fi
