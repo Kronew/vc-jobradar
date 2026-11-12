@@ -79,7 +79,7 @@ def test_other_cities_last_group(config, make_job):
     ]
     mail = mailer.render(jobs, config, errors=[], today=date(2026, 10, 28))
     assert mail.html.index("Marketing / Growth") < mail.html.index("Andere Städte (1)")
-    assert "Sales / Business Development" not in mail.html
+    assert "Sales / Business Development (" not in mail.html  # kein eigener Abschnitt, nur unter „Andere Städte“
 
 
 def test_investor_badge(config, make_job):
